@@ -619,51 +619,6 @@ TEST(MultiComponentView, Find) {
     ASSERT_EQ(view.find(e4), view.end());
 }
 
-TEST(MultiComponentView, ExcludedComponents) {
-    entt::registry registry;
-
-    const auto e0 = registry.create();
-    registry.emplace<int>(e0, 0);
-
-    const auto e1 = registry.create();
-    registry.emplace<int>(e1, 1);
-    registry.emplace<char>(e1);
-
-    const auto e2 = registry.create();
-    registry.emplace<int>(e2, 2);
-
-    const auto e3 = registry.create();
-    registry.emplace<int>(e3, 3);
-    registry.emplace<char>(e3);
-
-    const auto view = std::as_const(registry).view<const int>(entt::exclude<char>);
-
-    for(const auto entity: view) {
-        ASSERT_TRUE(entity == e0 || entity == e2);
-
-        if(entity == e0) {
-            ASSERT_EQ(view.get<const int>(e0), 0);
-        } else if(entity == e2) {
-            ASSERT_EQ(view.get(e2), 2);
-        }
-    }
-
-    registry.emplace<char>(e0);
-    registry.emplace<char>(e2);
-    registry.remove<char>(e1);
-    registry.remove<char>(e3);
-
-    for(const auto entity: view) {
-        ASSERT_TRUE(entity == e1 || entity == e3);
-
-        if(entity == e1) {
-            ASSERT_EQ(view.get(e1), 1);
-        } else if(entity == e3) {
-            ASSERT_EQ(view.get<const int>(e3), 3);
-        }
-    }
-}
-
 TEST(MultiComponentView, EmptyTypes) {
     entt::registry registry;
 
@@ -818,53 +773,6 @@ TEST(MultiComponentView, ChunkedSpread) {
         const auto entity = registry.create();
         registry.emplace<entt::id_type>(entity, entt::to_integral(entity));
         registry.emplace<char>(entity);
-    }
-
-    registry.emplace<entt::id_type>(registry.create());
-    registry.emplace<entt::id_type>(registry.create());
-    registry.emplace<char>(registry.create());
-
-    view.chunked([](auto *entity, auto *id, auto *, auto sz) {
-        ASSERT_EQ(sz, 3u);
-
-        for(decltype(sz) i{}; i < sz; ++i) {
-            ASSERT_EQ(entt::to_integral(*(entity + i)), *(id + i));
-        }
-    });
-}
-
-TEST(MultiComponentView, ChunkedWithExcludedComponents) {
-    entt::registry registry;
-    auto view = registry.view<const entt::id_type, const char>(entt::exclude<double>);
-
-    registry.emplace<entt::id_type>(registry.create());
-
-    for(auto i = 0; i < 3; ++i) {
-        const auto entity = registry.create();
-        registry.emplace<entt::id_type>(entity, entt::to_integral(entity));
-        registry.emplace<char>(entity);
-    }
-
-    registry.emplace<char>(registry.create());
-
-    for(auto i = 0; i < 2; ++i) {
-        const auto entity = registry.create();
-        registry.emplace<entt::id_type>(entity, entt::to_integral(entity));
-        registry.emplace<char>(entity);
-        registry.emplace<double>(entity);
-    }
-
-    for(auto i = 0; i < 3; ++i) {
-        const auto entity = registry.create();
-        registry.emplace<entt::id_type>(entity, entt::to_integral(entity));
-        registry.emplace<char>(entity);
-    }
-
-    for(auto i = 0; i < 2; ++i) {
-        const auto entity = registry.create();
-        registry.emplace<entt::id_type>(entity, entt::to_integral(entity));
-        registry.emplace<char>(entity);
-        registry.emplace<double>(entity);
     }
 
     registry.emplace<entt::id_type>(registry.create());

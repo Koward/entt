@@ -14,10 +14,10 @@ TEST(Helper, AsView) {
     entt::registry registry;
     const entt::registry cregistry;
 
-    ([](entt::view<entt::exclude_t<>, int>) {})(entt::as_view{registry});
-    ([](entt::view<entt::exclude_t<int>, char, double>) {})(entt::as_view{registry});
-    ([](entt::view<entt::exclude_t<int>, const char, double>) {})(entt::as_view{registry});
-    ([](entt::view<entt::exclude_t<int>, const char, const double>) {})(entt::as_view{registry});
+    ([](entt::view<int>) {})(entt::as_view{registry});
+    ([](entt::view<char, double>) {})(entt::as_view{registry});
+    ([](entt::view<const char, double>) {})(entt::as_view{registry});
+    ([](entt::view<const char, const double>) {})(entt::as_view{registry});
 }
 
 TEST(Helper, AsGroup) {
