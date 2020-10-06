@@ -1334,6 +1334,12 @@ auto single = registry.view<position>();
 auto multi = registry.view<position, velocity>();
 ```
 
+Filtering entities by components is also supported:
+
+```cpp
+auto view = registry.view<position, velocity>(entt::exclude<renderable>);
+```
+
 To iterate a view, either use it in a range-for loop:
 
 ```cpp

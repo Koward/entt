@@ -598,6 +598,51 @@ TEST(MultiComponentView, Find) {
     ASSERT_EQ(view.find(e4), view.end());
 }
 
+TEST(MultiComponentView, ExcludedComponents) {
+    entt::registry registry;
+
+    const auto e0 = registry.create();
+    registry.emplace<int>(e0, 0);
+
+    const auto e1 = registry.create();
+    registry.emplace<int>(e1, 1);
+    registry.emplace<char>(e1);
+
+    const auto e2 = registry.create();
+    registry.emplace<int>(e2, 2);
+
+    const auto e3 = registry.create();
+    registry.emplace<int>(e3, 3);
+    registry.emplace<char>(e3);
+
+    const auto view = std::as_const(registry).view<const int>(entt::exclude<char>);
+
+    for(const auto entity: view) {
+        ASSERT_TRUE(entity == e0 || entity == e2);
+
+        if(entity == e0) {
+            ASSERT_EQ(view.get<const int>(e0), 0);
+        } else if(entity == e2) {
+            ASSERT_EQ(view.get(e2), 2);
+        }
+    }
+
+    registry.emplace<char>(e0);
+    registry.emplace<char>(e2);
+    registry.remove<char>(e1);
+    registry.remove<char>(e3);
+
+    for(const auto entity: view) {
+        ASSERT_TRUE(entity == e1 || entity == e3);
+
+        if(entity == e1) {
+            ASSERT_EQ(view.get(e1), 1);
+        } else if(entity == e3) {
+            ASSERT_EQ(view.get<const int>(e3), 3);
+        }
+    }
+}
+
 TEST(MultiComponentView, EmptyTypes) {
     entt::registry registry;
 

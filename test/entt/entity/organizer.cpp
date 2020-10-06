@@ -2,20 +2,20 @@
 #include <entt/entity/organizer.hpp>
 #include <entt/entity/registry.hpp>
 
-void ro_int_rw_char_double(entt::view<const int, char>, double &) {}
-void ro_char_rw_int(entt::view<int, const char>) {}
-void ro_char_rw_double(entt::view<const char>, double &) {}
-void ro_int_double(entt::view<const int>, const double &) {}
+void ro_int_rw_char_double(entt::view<entt::exclude_t<>, const int, char>, double &) {}
+void ro_char_rw_int(entt::view<entt::exclude_t<>, int, const char>) {}
+void ro_char_rw_double(entt::view<entt::exclude_t<>, const char>, double &) {}
+void ro_int_double(entt::view<entt::exclude_t<>, const int>, const double &) {}
 void sync_point(entt::registry &) {}
 
 struct clazz {
-	void ro_int_char_double(entt::view<const int, const char>, const double &) {}
-	void rw_int(entt::view<int>) {}
-	void rw_int_char(entt::view<int, char>) {}
-	void rw_int_char_double(entt::view<int, char>, double &) {}
+	void ro_int_char_double(entt::view<entt::exclude_t<>, const int, const char>, const double &) {}
+	void rw_int(entt::view<entt::exclude_t<>, int>) {}
+	void rw_int_char(entt::view<entt::exclude_t<>, int, char>) {}
+	void rw_int_char_double(entt::view<entt::exclude_t<>, int, char>, double &) {}
 };
 
-void to_args_integrity(entt::view<int> view, std::size_t &value, entt::registry &registry) {
+void to_args_integrity(entt::view<entt::exclude_t<>, int> view, std::size_t &value, entt::registry &registry) {
 	value = view.size();
 }
 

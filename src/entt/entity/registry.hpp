@@ -1108,19 +1108,20 @@ public:
      * To get a performance boost, consider using a group instead.
      *
      * @tparam Component Type of components used to construct the view.
+     * @tparam Exclude Types of components used to filter the view.
      * @return A newly created view.
      */
-    template<typename... Component>
-    [[nodiscard]] basic_view<Entity, Component...> view() const {
-        static_assert(sizeof...(Component) > 0, "No type specified");
-        return { assure<std::decay_t<Component>>()... };
+    template<typename... Component, typename... Exclude>
+    [[nodiscard]] basic_view<Entity, exclude_t<Exclude...>, Component...> view(exclude_t<Exclude...> = {}) const {
+        static_assert(sizeof...(Component) > 0, "Exclusion-only views are not supported");
+        return { assure<std::decay_t<Component>>()..., assure<Exclude>()... };
     }
 
     /*! @copydoc view */
-    template<typename... Component>
-    [[nodiscard]] basic_view<Entity, Component...> view() {
-        static_assert(sizeof...(Component) > 0, "No type specified");
-        return { assure<std::decay_t<Component>>()... };
+    template<typename... Component, typename... Exclude>
+    [[nodiscard]] basic_view<Entity, exclude_t<Exclude...>, Component...> view(exclude_t<Exclude...> = {}) {
+        static_assert(sizeof...(Component) > 0, "Exclusion-only views are not supported");
+        return { assure<std::decay_t<Component>>()..., assure<Exclude>()... };
     }
 
     /**
@@ -1198,7 +1199,7 @@ public:
      */
     template<typename... Owned, typename... Get, typename... Exclude>
     [[nodiscard]] basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> group(get_t<Get...>, exclude_t<Exclude...> = {}) {
-        static_assert(sizeof...(Owned) + sizeof...(Get) > 0, "Exclusion-only groups are not supported");
+        static_assert(sizeof...(Owned) + sizeof...(Get) > 0, "Exclusion-only views are not supported");
         static_assert(sizeof...(Owned) + sizeof...(Get) + sizeof...(Exclude) > 1, "Single component groups are not allowed");
 
         using handler_type = group_handler<exclude_t<Exclude...>, get_t<std::decay_t<Get>...>, std::decay_t<Owned>...>;
@@ -1262,12 +1263,8 @@ public:
             (on_construct<Exclude>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
 
             if constexpr(sizeof...(Owned) == 0) {
-                [[maybe_unused]] auto filter = std::forward_as_tuple(assure<Exclude>()...);
-
-                for(const auto entity: view<Owned..., Get...>()) {
-                    if((!std::get<pool_t<Entity, Exclude> &>(filter).contains(entity) && ...)) {
-                        handler->current.emplace(entity);
-                    }
+                for(const auto entity: view<Owned..., Get...>(exclude<Exclude...>)) {
+                    handler->current.emplace(entity);
                 }
             } else {
                 // we cannot iterate backwards because we want to leave behind valid entities in case of owned types
