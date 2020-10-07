@@ -1357,8 +1357,8 @@ for(auto entity: view) {
 }
 ```
 
-Or rely on the `each` and `proxy` member functions to iterate both entities and
-components at once:
+Or rely on the `each` member functions to iterate both entities and components
+at once:
 
 ```cpp
 // through a callback
@@ -1367,7 +1367,7 @@ registry.view<position, velocity>().each([](auto entity, auto &pos, auto &vel) {
 });
 
 // using an input iterator
-for(auto &&[entity, pos, vel]: registry.view<position, velocity>().proxy()) {
+for(auto &&[entity, pos, vel]: registry.view<position, velocity>().each()) {
     // ...
 }
 ```
@@ -1511,8 +1511,8 @@ for(auto entity: group) {
 }
 ```
 
-Or rely on the `each` and `proxy` member functions to iterate both entities and
-components at once:
+Or rely on the `each` member functions to iterate both entities and components
+at once:
 
 ```cpp
 // through a callback
@@ -1521,7 +1521,7 @@ registry.group<position>(entt::get<velocity>).each([](auto entity, auto &pos, au
 });
 
 // using an input iterator
-for(auto &&[entity, pos, vel]: registry.group<position>(entt::get<velocity>).proxy()) {
+for(auto &&[entity, pos, vel]: registry.group<position>(entt::get<velocity>).each()) {
     // ...
 }
 ```
@@ -1972,12 +1972,12 @@ knows what artifacts that are difficult to maintain over time.
 
 Unfortunately, because of the limitations of the current revision of the
 standard, the parallel `std::for_each` accepts only forward iterators. This
-means that the iterators provided by the library cannot return proxy objects as
-references and **must** return actual reference types instead.<br/>
+means that the default iterators provided by the library cannot return proxy
+objects as references and **must** return actual reference types instead.<br/>
 This may change in the future and the iterators will almost certainly return
-both the entities and a list of references to their components sooner or later.
-Multi-pass guarantee won't break in any case and the performance should even
-benefit from it further.
+both the entities and a list of references to their components by default sooner
+or later. Multi-pass guarantee won't break in any case and the performance
+should even benefit from it further.
 
 # Beyond this document
 
