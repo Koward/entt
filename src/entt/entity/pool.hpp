@@ -237,41 +237,48 @@ private:
 
 
 /**
- * @brief Applies component-to-pool conversion and defines the resulting type as
- * the member typedef type.
- *
+ * @brief Applies component-to-pool and component-to-view conversions.
+ * 
+ * It defines the resulting pool type as the member typedef `type` and the
+ * resulting view type as the member typedef `view`.
+ * 
  * Formally:
  *
- * * If the component type is a non-const one, the member typedef type is the
- *   declared storage type.
- * * If the component type is a const one, the member typedef type is the
- *   declared storage type, except it has a const-qualifier added.
- *
+ * * The member typedef `type` is the default pool specialized with a non-const
+ *   representation of the given type.
+ * * If the component type is a non-const one, the member typedef `view` is the
+ *   declared pool type.
+ * * If the component type is a const one, the member typedef `view` is the
+ *   declared pool type, except it has a const-qualifier added.
+ * 
  * @tparam Entity A valid entity type (see entt_traits for more details).
  * @tparam Type Type of objects assigned to the entities.
  */
 template<typename Entity, typename Type, typename = void>
 struct pool {
     /*! @brief Resulting type after component-to-pool conversion. */
-    using type = default_pool<Entity, Type>;
-};
-
-
-/*! @copydoc pool */
-template<typename Entity, typename Type>
-struct pool<Entity, const Type> {
-    /*! @brief Resulting type after component-to-pool conversion. */
-    using type = std::add_const_t<typename pool<Entity, std::remove_const_t<Type>>::type>;
+    using type = default_pool<Entity, std::remove_const_t<Type>>;
+    /*! @brief TODO */
+    using view = std::conditional_t<std::is_const_v<Type>, std::add_const_t<type>, type>;
 };
 
 
 /**
- * @brief Alias declaration to use to make component-to-pool conversions.
+ * @brief Alias declaration to use for component-to-pool conversions.
  * @tparam Entity A valid entity type (see entt_traits for more details).
  * @tparam Type Type of objects assigned to the entities.
  */
 template<typename Entity, typename Type>
 using pool_t = typename pool<Entity, Type>::type;
+
+
+/**
+* @brief Alias declaration to use for component-to-view conversions.
+* @tparam Entity A valid entity type (see entt_traits for more details).
+* @tparam Type Type of objects assigned to the entities.
+*/
+template<typename Entity, typename Type>
+using view_t = typename pool<Entity, Type>::view;
 
 
 }

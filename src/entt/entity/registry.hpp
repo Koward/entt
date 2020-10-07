@@ -1275,9 +1275,9 @@ public:
         }
 
         if constexpr(sizeof...(Owned) == 0) {
-            return { handler->current, std::get<pool_t<Entity, std::decay_t<Get>> &>(cpools)... };
+            return { handler->current, std::get<pool_t<Entity, Get> &>(cpools)... };
         } else {
-            return { handler->current, std::get<pool_t<Entity, std::decay_t<Owned>> &>(cpools)... , std::get<pool_t<Entity, std::decay_t<Get>> &>(cpools)... };
+            return { handler->current, std::get<pool_t<Entity, Owned> &>(cpools)... , std::get<pool_t<Entity, Get> &>(cpools)... };
         }
     }
 
