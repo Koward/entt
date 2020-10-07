@@ -1202,16 +1202,16 @@ public:
         static_assert(sizeof...(Owned) + sizeof...(Get) > 0, "Exclusion-only views are not supported");
         static_assert(sizeof...(Owned) + sizeof...(Get) + sizeof...(Exclude) > 1, "Single component groups are not allowed");
 
-        using handler_type = group_handler<exclude_t<Exclude...>, get_t<std::decay_t<Get>...>, std::decay_t<Owned>...>;
+        using handler_type = group_handler<exclude_t<Exclude...>, get_t<std::remove_const_t<Get>...>, std::remove_const_t<Owned>...>;
 
-        const auto cpools = std::forward_as_tuple(assure<std::decay_t<Owned>>()..., assure<std::decay_t<Get>>()...);
+        const auto cpools = std::forward_as_tuple(assure<std::remove_const_t<Owned>>()..., assure<std::remove_const_t<Get>>()...);
         constexpr auto size = sizeof...(Owned) + sizeof...(Get) + sizeof...(Exclude);
         handler_type *handler = nullptr;
 
         if(auto it = std::find_if(groups.cbegin(), groups.cend(), [size](const auto &gdata) {
             return gdata.size == size
-                && (gdata.owned(type_hash<std::decay_t<Owned>>::value()) && ...)
-                && (gdata.get(type_hash<std::decay_t<Get>>::value()) && ...)
+                && (gdata.owned(type_hash<std::remove_const_t<Owned>>::value()) && ...)
+                && (gdata.get(type_hash<std::remove_const_t<Get>>::value()) && ...)
                 && (gdata.exclude(type_hash<Exclude>::value()) && ...);
         }); it != groups.cend())
         {
@@ -1222,8 +1222,8 @@ public:
             group_data candidate = {
                 size,
                 { new handler_type{}, [](void *instance) { delete static_cast<handler_type *>(instance); } },
-                []([[maybe_unused]] const id_type ctype) ENTT_NOEXCEPT { return ((ctype == type_hash<std::decay_t<Owned>>::value()) || ...); },
-                []([[maybe_unused]] const id_type ctype) ENTT_NOEXCEPT { return ((ctype == type_hash<std::decay_t<Get>>::value()) || ...); },
+                []([[maybe_unused]] const id_type ctype) ENTT_NOEXCEPT { return ((ctype == type_hash<std::remove_const_t<Owned>>::value()) || ...); },
+                []([[maybe_unused]] const id_type ctype) ENTT_NOEXCEPT { return ((ctype == type_hash<std::remove_const_t<Get>>::value()) || ...); },
                 []([[maybe_unused]] const id_type ctype) ENTT_NOEXCEPT { return ((ctype == type_hash<Exclude>::value()) || ...); },
             };
 
@@ -1236,17 +1236,17 @@ public:
                 groups.push_back(std::move(candidate));
             } else {
                 ENTT_ASSERT(std::all_of(groups.cbegin(), groups.cend(), [size](const auto &gdata) {
-                    const auto overlapping = (0u + ... + gdata.owned(type_hash<std::decay_t<Owned>>::value()));
-                    const auto sz = overlapping + (0u + ... + gdata.get(type_hash<std::decay_t<Get>>::value())) + (0u + ... + gdata.exclude(type_hash<Exclude>::value()));
+                    const auto overlapping = (0u + ... + gdata.owned(type_hash<std::remove_const_t<Owned>>::value()));
+                    const auto sz = overlapping + (0u + ... + gdata.get(type_hash<std::remove_const_t<Get>>::value())) + (0u + ... + gdata.exclude(type_hash<Exclude>::value()));
                     return !overlapping || ((sz == size) || (sz == gdata.size));
                 }));
 
                 const auto next = std::find_if_not(groups.cbegin(), groups.cend(), [size](const auto &gdata) {
-                    return !(0u + ... + gdata.owned(type_hash<std::decay_t<Owned>>::value())) || (size > gdata.size);
+                    return !(0u + ... + gdata.owned(type_hash<std::remove_const_t<Owned>>::value())) || (size > gdata.size);
                 });
 
                 const auto prev = std::find_if(std::make_reverse_iterator(next), groups.crend(), [](const auto &gdata) {
-                    return (0u + ... + gdata.owned(type_hash<std::decay_t<Owned>>::value()));
+                    return (0u + ... + gdata.owned(type_hash<std::remove_const_t<Owned>>::value()));
                 });
 
                 maybe_valid_if = (next == groups.cend() ? maybe_valid_if : next->group.get());
@@ -1254,12 +1254,12 @@ public:
                 groups.insert(next, std::move(candidate));
             }
 
-            (on_construct<std::decay_t<Owned>>().before(maybe_valid_if).template connect<&handler_type::template maybe_valid_if<std::decay_t<Owned>>>(*handler), ...);
-            (on_construct<std::decay_t<Get>>().before(maybe_valid_if).template connect<&handler_type::template maybe_valid_if<std::decay_t<Get>>>(*handler), ...);
+            (on_construct<std::remove_const_t<Owned>>().before(maybe_valid_if).template connect<&handler_type::template maybe_valid_if<std::remove_const_t<Owned>>>(*handler), ...);
+            (on_construct<std::remove_const_t<Get>>().before(maybe_valid_if).template connect<&handler_type::template maybe_valid_if<std::remove_const_t<Get>>>(*handler), ...);
             (on_destroy<Exclude>().before(maybe_valid_if).template connect<&handler_type::template maybe_valid_if<Exclude>>(*handler), ...);
 
-            (on_destroy<std::decay_t<Owned>>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
-            (on_destroy<std::decay_t<Get>>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
+            (on_destroy<std::remove_const_t<Owned>>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
+            (on_destroy<std::remove_const_t<Get>>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
             (on_construct<Exclude>().before(discard_if).template connect<&handler_type::discard_if>(*handler), ...);
 
             if constexpr(sizeof...(Owned) == 0) {
@@ -1269,15 +1269,15 @@ public:
             } else {
                 // we cannot iterate backwards because we want to leave behind valid entities in case of owned types
                 for(auto *first = std::get<0>(cpools).data(), *last = first + std::get<0>(cpools).size(); first != last; ++first) {
-                    handler->template maybe_valid_if<std::tuple_element_t<0, std::tuple<std::decay_t<Owned>...>>>(*this, *first);
+                    handler->template maybe_valid_if<std::tuple_element_t<0, std::tuple<std::remove_const_t<Owned>...>>>(*this, *first);
                 }
             }
         }
 
         if constexpr(sizeof...(Owned) == 0) {
-            return { handler->current, std::get<pool_t<Entity, Get> &>(cpools)... };
+            return { handler->current, std::get<pool_t<Entity, std::remove_const_t<Get>> &>(cpools)... };
         } else {
-            return { handler->current, std::get<pool_t<Entity, Owned> &>(cpools)... , std::get<pool_t<Entity, Get> &>(cpools)... };
+            return { handler->current, std::get<pool_t<Entity, std::remove_const_t<Owned>> &>(cpools)... , std::get<pool_t<Entity, std::remove_const_t<Get>> &>(cpools)... };
         }
     }
 

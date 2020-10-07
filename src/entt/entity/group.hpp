@@ -69,7 +69,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
     friend class basic_registry<Entity>;
 
     template<typename Component>
-    using view_type = view_t<Entity, Component>;
+    using pool_type = pool_t<Entity, Component>;
 
     class group_proxy {
         friend class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>>;
@@ -78,7 +78,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
             friend class group_proxy;
 
             using it_type = typename sparse_set<Entity>::iterator;
-            using ref_type = decltype(std::tuple_cat(std::declval<std::conditional_t<is_eto_eligible_v<Get>, std::tuple<>, std::tuple<view_type<Get> *>>>()...));
+            using ref_type = decltype(std::tuple_cat(std::declval<std::conditional_t<is_eto_eligible_v<Get>, std::tuple<>, std::tuple<pool_type<Get> *>>>()...));
 
             proxy_iterator(it_type from, ref_type ref) ENTT_NOEXCEPT
                 : it{from},
@@ -124,7 +124,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
             ref_type pools{};
         };
 
-        group_proxy(const sparse_set<Entity> &ref, std::tuple<view_type<Get> *...> gpools)
+        group_proxy(const sparse_set<Entity> &ref, std::tuple<pool_type<Get> *...> gpools)
             : handler{&ref},
               pools{gpools}
         {}
@@ -139,7 +139,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
                 } else {
                     return std::make_tuple(cpool);
                 }
-            }(std::get<view_type<Get> *>(pools))...)};
+            }(std::get<pool_type<Get> *>(pools))...)};
         }
 
         [[nodiscard]] iterator end() const ENTT_NOEXCEPT {
@@ -149,15 +149,15 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
                 } else {
                     return std::make_tuple(cpool);
                 }
-            }(std::get<view_type<Get> *>(pools))...)};
+            }(std::get<pool_type<Get> *>(pools))...)};
         }
 
     private:
         const sparse_set<Entity> *handler;
-        std::tuple<view_type<Get> *...> pools;
+        std::tuple<pool_type<Get> *...> pools;
     };
 
-    basic_group(sparse_set<Entity> &ref, view_type<Get> &... gpool) ENTT_NOEXCEPT
+    basic_group(sparse_set<Entity> &ref, pool_type<Get> &... gpool) ENTT_NOEXCEPT
         : handler{&ref},
           pools{&gpool...}
     {}
@@ -166,9 +166,9 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>> {
     void traverse(Func func, type_list<Weak...>) const {
         for(const auto entt: *handler) {
             if constexpr(std::is_invocable_v<Func, decltype(get<Weak>({}))...>) {
-                func(std::get<view_type<Weak> *>(pools)->get(entt)...);
+                func(std::get<pool_type<Weak> *>(pools)->get(entt)...);
             } else {
-                func(entt, std::get<view_type<Weak> *>(pools)->get(entt)...);
+                func(entt, std::get<pool_type<Weak> *>(pools)->get(entt)...);
             }
         }
     }
@@ -190,7 +190,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] size_type size() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->size();
+        return std::get<pool_type<Component> *>(pools)->size();
     }
 
     /**
@@ -225,7 +225,7 @@ public:
         if constexpr(sizeof...(Component) == 0) {
             return handler->empty();
         } else {
-            return (std::get<view_type<Component> *>(pools)->empty() && ...);
+            return (std::get<pool_type<Component> *>(pools)->empty() && ...);
         }
     }
 
@@ -245,7 +245,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] Component * raw() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->raw();
+        return std::get<pool_type<Component> *>(pools)->raw();
     }
 
     /**
@@ -264,7 +264,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] const entity_type * data() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->data();
+        return std::get<pool_type<Component> *>(pools)->data();
     }
 
     /**
@@ -423,7 +423,7 @@ public:
         ENTT_ASSERT(contains(entt));
 
         if constexpr(sizeof...(Component) == 1) {
-            return (std::get<view_type<Component> *>(pools)->get(entt), ...);
+            return (std::get<pool_type<Component> *>(pools)->get(entt), ...);
         } else {
             return std::tuple<decltype(get<Component>({}))...>{get<Component>(entt)...};
         }
@@ -517,11 +517,11 @@ public:
             handler->sort(handler->begin(), handler->end(), std::move(compare), std::move(algo), std::forward<Args>(args)...);
         }  else if constexpr(sizeof...(Component) == 1) {
             handler->sort(handler->begin(), handler->end(), [this, compare = std::move(compare)](const entity_type lhs, const entity_type rhs) {
-                return compare((std::get<view_type<Component> *>(pools)->get(lhs), ...), (std::get<view_type<Component> *>(pools)->get(rhs), ...));
+                return compare((std::get<pool_type<Component> *>(pools)->get(lhs), ...), (std::get<pool_type<Component> *>(pools)->get(rhs), ...));
             }, std::move(algo), std::forward<Args>(args)...);
         } else {
             handler->sort(handler->begin(), handler->end(), [this, compare = std::move(compare)](const entity_type lhs, const entity_type rhs) {
-                return compare(std::tuple<decltype(get<Component>({}))...>{std::get<view_type<Component> *>(pools)->get(lhs)...}, std::tuple<decltype(get<Component>({}))...>{std::get<view_type<Component> *>(pools)->get(rhs)...});
+                return compare(std::tuple<decltype(get<Component>({}))...>{std::get<pool_type<Component> *>(pools)->get(lhs)...}, std::tuple<decltype(get<Component>({}))...>{std::get<pool_type<Component> *>(pools)->get(rhs)...});
             }, std::move(algo), std::forward<Args>(args)...);
         }
     }
@@ -544,12 +544,12 @@ public:
      */
     template<typename Component>
     void sort() const {
-        handler->respect(*std::get<view_type<Component> *>(pools));
+        handler->respect(*std::get<pool_type<Component> *>(pools));
     }
 
 private:
     sparse_set<entity_type> *handler;
-    const std::tuple<view_type<Get> *...> pools;
+    const std::tuple<pool_type<Get> *...> pools;
 };
 
 
@@ -605,10 +605,10 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
     friend class basic_registry<Entity>;
 
     template<typename Component>
-    using view_type = view_t<Entity, Component>;
+    using pool_type = pool_t<Entity, Component>;
 
     template<typename Component>
-    using component_iterator = decltype(std::declval<view_type<Component>>().begin());
+    using component_iterator = decltype(std::declval<pool_type<Component>>().begin());
 
     class group_proxy {
         friend class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...>;
@@ -618,7 +618,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
 
             using it_type = typename sparse_set<Entity>::iterator;
             using owned_type = decltype(std::tuple_cat(std::declval<std::conditional_t<is_eto_eligible_v<Owned>, std::tuple<>, std::tuple<component_iterator<Owned>>>>()...));
-            using get_type = decltype(std::tuple_cat(std::declval<std::conditional_t<is_eto_eligible_v<Get>, std::tuple<>, std::tuple<view_type<Get> *>>>()...));
+            using get_type = decltype(std::tuple_cat(std::declval<std::conditional_t<is_eto_eligible_v<Get>, std::tuple<>, std::tuple<pool_type<Get> *>>>()...));
 
             proxy_iterator(it_type from, owned_type oref, get_type gref) ENTT_NOEXCEPT
                 : it{from},
@@ -672,7 +672,7 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
             get_type get{};
         };
 
-        group_proxy(std::tuple<view_type<Owned> *..., view_type<Get> *...> cpools, const std::size_t &extent)
+        group_proxy(std::tuple<pool_type<Owned> *..., pool_type<Get> *...> cpools, const std::size_t &extent)
             : pools{cpools},
               length{&extent}
         {}
@@ -689,14 +689,14 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
                     } else {
                         return std::make_tuple(cpool->end() - length);
                     }
-                }(std::get<view_type<Owned> *>(pools))...),
+                }(std::get<pool_type<Owned> *>(pools))...),
                 std::tuple_cat([](auto *cpool) {
                     if constexpr(is_eto_eligible_v<typename std::remove_reference_t<decltype(*cpool)>::object_type>) {
                         return std::make_tuple();
                     } else {
                         return std::make_tuple(cpool);
                     }
-                }(std::get<view_type<Get> *>(pools))...)
+                }(std::get<pool_type<Get> *>(pools))...)
             };
         }
 
@@ -709,30 +709,30 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
                     } else {
                         return std::make_tuple(cpool->end());
                     }
-                }(std::get<view_type<Owned> *>(pools))...),
+                }(std::get<pool_type<Owned> *>(pools))...),
                 std::tuple_cat([](auto *cpool) {
                     if constexpr(is_eto_eligible_v<typename std::remove_reference_t<decltype(*cpool)>::object_type>) {
                         return std::make_tuple();
                     } else {
                         return std::make_tuple(cpool);
                     }
-                }(std::get<view_type<Get> *>(pools))...)
+                }(std::get<pool_type<Get> *>(pools))...)
             };
         }
 
     private:
-        const std::tuple<view_type<Owned> *..., view_type<Get> *...> pools;
+        const std::tuple<pool_type<Owned> *..., pool_type<Get> *...> pools;
         const std::size_t *length;
     };
 
-    basic_group(const std::size_t &extent, view_type<Owned> &... opool, view_type<Get> &... gpool) ENTT_NOEXCEPT
+    basic_group(const std::size_t &extent, pool_type<Owned> &... opool, pool_type<Get> &... gpool) ENTT_NOEXCEPT
         : pools{&opool..., &gpool...},
           length{&extent}
     {}
 
     template<typename Func, typename... Strong, typename... Weak>
     void traverse(Func func, type_list<Strong...>, type_list<Weak...>) const {
-        [[maybe_unused]] auto it = std::make_tuple((std::get<view_type<Strong> *>(pools)->end() - *length)...);
+        [[maybe_unused]] auto it = std::make_tuple((std::get<pool_type<Strong> *>(pools)->end() - *length)...);
         [[maybe_unused]] auto data = std::get<0>(pools)->sparse_set<entity_type>::end() - *length;
 
         for(auto next = *length; next; --next) {
@@ -741,11 +741,11 @@ class basic_group<Entity, exclude_t<Exclude...>, get_t<Get...>, Owned...> {
                     func(*(std::get<component_iterator<Strong>>(it)++)...);
                 } else {
                     const auto entt = *(data++);
-                    func(*(std::get<component_iterator<Strong>>(it)++)..., std::get<view_type<Weak> *>(pools)->get(entt)...);
+                    func(*(std::get<component_iterator<Strong>>(it)++)..., std::get<pool_type<Weak> *>(pools)->get(entt)...);
                 }
             } else {
                 const auto entt = *(data++);
-                func(entt, *(std::get<component_iterator<Strong>>(it)++)..., std::get<view_type<Weak> *>(pools)->get(entt)...);
+                func(entt, *(std::get<component_iterator<Strong>>(it)++)..., std::get<pool_type<Weak> *>(pools)->get(entt)...);
             }
         }
     }
@@ -767,7 +767,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] size_type size() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->size();
+        return std::get<pool_type<Component> *>(pools)->size();
     }
 
     /**
@@ -788,7 +788,7 @@ public:
         if constexpr(sizeof...(Component) == 0) {
             return !*length;
         } else {
-            return (std::get<view_type<Component> *>(pools)->empty() && ...);
+            return (std::get<pool_type<Component> *>(pools)->empty() && ...);
         }
     }
 
@@ -811,7 +811,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] Component * raw() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->raw();
+        return std::get<pool_type<Component> *>(pools)->raw();
     }
 
     /**
@@ -833,7 +833,7 @@ public:
      */
     template<typename Component>
     [[nodiscard]] const entity_type * data() const ENTT_NOEXCEPT {
-        return std::get<view_type<Component> *>(pools)->data();
+        return std::get<pool_type<Component> *>(pools)->data();
     }
 
     /**
@@ -992,7 +992,7 @@ public:
         ENTT_ASSERT(contains(entt));
 
         if constexpr(sizeof...(Component) == 1) {
-            return (std::get<view_type<Component> *>(pools)->get(entt), ...);
+            return (std::get<pool_type<Component> *>(pools)->get(entt), ...);
         } else {
             return std::tuple<decltype(get<Component>({}))...>{get<Component>(entt)...};
         }
@@ -1090,11 +1090,11 @@ public:
             cpool->sort(cpool->end()-*length, cpool->end(), std::move(compare), std::move(algo), std::forward<Args>(args)...);
         } else if constexpr(sizeof...(Component) == 1) {
             cpool->sort(cpool->end()-*length, cpool->end(), [this, compare = std::move(compare)](const entity_type lhs, const entity_type rhs) {
-                return compare((std::get<view_type<Component> *>(pools)->get(lhs), ...), (std::get<view_type<Component> *>(pools)->get(rhs), ...));
+                return compare((std::get<pool_type<Component> *>(pools)->get(lhs), ...), (std::get<pool_type<Component> *>(pools)->get(rhs), ...));
             }, std::move(algo), std::forward<Args>(args)...);
         } else {
             cpool->sort(cpool->end()-*length, cpool->end(), [this, compare = std::move(compare)](const entity_type lhs, const entity_type rhs) {
-                return compare(std::tuple<decltype(get<Component>({}))...>{std::get<view_type<Component> *>(pools)->get(lhs)...}, std::tuple<decltype(get<Component>({}))...>{std::get<view_type<Component> *>(pools)->get(rhs)...});
+                return compare(std::tuple<decltype(get<Component>({}))...>{std::get<pool_type<Component> *>(pools)->get(lhs)...}, std::tuple<decltype(get<Component>({}))...>{std::get<pool_type<Component> *>(pools)->get(rhs)...});
             }, std::move(algo), std::forward<Args>(args)...);
         }
 
@@ -1104,11 +1104,11 @@ public:
                 [[maybe_unused]] const auto entt = head->data()[pos];
                 (other->swap(other->data()[pos], entt), ...);
             }
-        }(std::get<view_type<Owned> *>(pools)...);
+        }(std::get<pool_type<Owned> *>(pools)...);
     }
 
 private:
-    const std::tuple<view_type<Owned> *..., view_type<Get> *...> pools;
+    const std::tuple<pool_type<Owned> *..., pool_type<Get> *...> pools;
     const size_type *length;
 };
 

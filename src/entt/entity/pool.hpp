@@ -257,9 +257,9 @@ private:
 template<typename Entity, typename Type, typename = void>
 struct pool {
     /*! @brief Resulting type after component-to-pool conversion. */
-    using type = default_pool<Entity, std::remove_const_t<Type>>;
-    /*! @brief TODO */
-    using view = std::conditional_t<std::is_const_v<Type>, std::add_const_t<type>, type>;
+    using type = std::conditional_t<std::is_const_v<Type>, const default_pool<Entity, std::remove_const_t<Type>>, default_pool<Entity, Type>>;
+    /*! @brief Resulting type after component-to-view conversion. */
+    using view = type;
 };
 
 
@@ -273,12 +273,20 @@ using pool_t = typename pool<Entity, Type>::type;
 
 
 /**
-* @brief Alias declaration to use for component-to-view conversions.
-* @tparam Entity A valid entity type (see entt_traits for more details).
-* @tparam Type Type of objects assigned to the entities.
-*/
+ * @brief Alias declaration to use for component-to-view conversions.
+ * @tparam Entity A valid entity type (see entt_traits for more details).
+ * @tparam Type Type of objects assigned to the entities.
+ */
 template<typename Entity, typename Type>
 using view_t = typename pool<Entity, Type>::view;
+
+
+/**
+ * @brief Helper variable template.
+ * @tparam Type The type of which to extract the configuration method.
+ */
+template<typename Type>
+inline constexpr auto view_config_v = pool<Entity, Type>::config;
 
 
 }
