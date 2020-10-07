@@ -237,6 +237,12 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...> {
         const std::tuple<view_type<Component> *...> pools;
     };
 
+    basic_view(view_type<Component> &... component, unpack_as_t<const sparse_set<Entity>, Exclude> &... epool) ENTT_NOEXCEPT
+        : pools{&component...},
+          view{candidate()},
+          filter{&epool...}
+    {}
+
     [[nodiscard]] const sparse_set<Entity> * candidate() const ENTT_NOEXCEPT {
         return (std::min)({ static_cast<const sparse_set<Entity> *>(std::get<view_type<Component> *>(pools))... }, [](const auto *lhs, const auto *rhs) {
             return lhs->size() < rhs->size();
@@ -301,17 +307,6 @@ public:
     using iterator = view_iterator<typename sparse_set<entity_type>::iterator>;
     /*! @brief Reverse iterator type. */
     using reverse_iterator = view_iterator<typename sparse_set<entity_type>::reverse_iterator>;
-
-    /**
-     * @brief Constructs a view from its reference storages.
-     * @param component The storages for which the view is built.
-     * @param epool The storages used to filter the view.
-     */
-    basic_view(view_type<Component> &... component, unpack_as_t<const sparse_set<Entity>, Exclude> &... epool) ENTT_NOEXCEPT
-        : pools{&component...},
-          view{candidate()},
-          filter{&epool...}
-    {}
 
     /**
      * @brief Estimates the number of entities iterated by the view.
@@ -671,6 +666,10 @@ class basic_view<Entity, exclude_t<>, Component> {
         view_type *pool;
     };
 
+    basic_view(view_type &ref) ENTT_NOEXCEPT
+        : pool{&ref}
+    {}
+
 public:
     /*! @brief Type of component iterated by the view. */
     using raw_type = Component;
@@ -682,14 +681,6 @@ public:
     using iterator = typename sparse_set<Entity>::iterator;
     /*! @brief Reversed iterator type. */
     using reverse_iterator = typename sparse_set<Entity>::reverse_iterator;
-
-    /**
-     * @brief Constructs a view from its reference storage.
-     * @param ref The storage for which the view is built.
-     */
-    basic_view(view_type &ref) ENTT_NOEXCEPT
-        : pool{&ref}
-    {}
 
     /**
      * @brief Returns the number of entities that have the given component.
