@@ -546,6 +546,18 @@ public:
         return view_range{std::move(first), std::move(last), pools};
     }
 
+    /**
+     * @brief Forwards its arguments to the view for the given component for
+     * configuration purposes.
+     * @tparam Comp Type of component to set up the view for.
+     * @tparam Args Types of arguments to forward to the underlying view.
+     * @param args Arguments to forward to the underlying view.
+     */
+    template<typename Comp, typename... Args>
+    void setup(Args &&... args) const {
+        (std::get<view_type<Comp> *>(pools)->*view_setup_v<Comp>)(std::forward<Args>(args)...);
+    }
+
 private:
     const std::tuple<view_type<Component> *...> pools;
     mutable const sparse_set<entity_type>* view;

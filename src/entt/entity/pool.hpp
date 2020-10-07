@@ -283,10 +283,10 @@ using view_t = typename pool<Entity, Type>::view;
 
 /**
  * @brief Helper variable template.
- * @tparam Type The type of which to extract the configuration method.
+ * @tparam Type The type of which to extract the setup member function.
  */
 template<typename Type>
-inline constexpr auto view_config_v = pool<Entity, Type>::config;
+inline constexpr auto view_setup_v = pool<Entity, Type>::setup;
 
 
 }
