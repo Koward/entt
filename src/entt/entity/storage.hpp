@@ -40,16 +40,16 @@ namespace entt {
  * Empty types aren't explicitly instantiated. Therefore, many of the functions
  * normally available for non-empty types will not be available for empty ones.
  *
- * @sa sparse_set<Entity>
+ * @sa basic_sparse_set<Entity>
  *
  * @tparam Entity A valid entity type (see entt_traits for more details).
  * @tparam Type Type of objects assigned to the entities.
  */
 template<typename Entity, typename Type, typename = void>
-class storage: public sparse_set<Entity> {
+class storage: public basic_sparse_set<Entity> {
     static_assert(std::is_move_constructible_v<Type> && std::is_move_assignable_v<Type>, "The managed type must be at least move constructible and assignable");
 
-    using underlying_type = sparse_set<Entity>;
+    using underlying_type = basic_sparse_set<Entity>;
     using traits_type = entt_traits<Entity>;
 
     template<bool Const>
@@ -521,8 +521,8 @@ private:
 
 /*! @copydoc storage */
 template<typename Entity, typename Type>
-class storage<Entity, Type, std::enable_if_t<is_eto_eligible_v<Type>>>: public sparse_set<Entity> {
-    using underlying_type = sparse_set<Entity>;
+class storage<Entity, Type, std::enable_if_t<is_eto_eligible_v<Type>>>: public basic_sparse_set<Entity> {
+    using underlying_type = basic_sparse_set<Entity>;
 
 public:
     /*! @brief Type of the objects associated with the entities. */
