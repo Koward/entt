@@ -253,7 +253,7 @@ private:
 template<typename Entity, typename Type>
 struct pool {
     /*! @brief Resulting type after component-to-pool conversion. */
-    using type = std::conditional_t<std::is_const_v<Type>, const default_pool<Entity, std::remove_const_t<Type>>, default_pool<Entity, Type>>;
+    using type = std::conditional_t<std::is_const_v<Type>, std::add_const_t<default_pool<Entity, std::remove_const_t<Type>>>, default_pool<Entity, Type>>;
 };
 
 
