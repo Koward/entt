@@ -237,29 +237,23 @@ private:
 
 
 /**
- * @brief Applies component-to-pool and component-to-view conversions.
- * 
- * It defines the resulting pool type as the member typedef `type` and the
- * resulting view type as the member typedef `view`.
- * 
+ * @brief Applies component-to-pool conversion and defines the resulting type as
+ * the member typedef type.
+ *
  * Formally:
  *
- * * The member typedef `type` is the default pool specialized with a non-const
- *   representation of the given type.
- * * If the component type is a non-const one, the member typedef `view` is the
- *   declared pool type.
- * * If the component type is a const one, the member typedef `view` is the
- *   declared pool type, except it has a const-qualifier added.
- * 
+ * * If the component type is a non-const one, the member typedef type is the
+ *   declared storage type.
+ * * If the component type is a const one, the member typedef type is the
+ *   declared storage type, except it has a const-qualifier added.
+ *
  * @tparam Entity A valid entity type (see entt_traits for more details).
  * @tparam Type Type of objects assigned to the entities.
  */
-template<typename Entity, typename Type, typename = void>
+template<typename Entity, typename Type>
 struct pool {
     /*! @brief Resulting type after component-to-pool conversion. */
     using type = std::conditional_t<std::is_const_v<Type>, const default_pool<Entity, std::remove_const_t<Type>>, default_pool<Entity, Type>>;
-    /*! @brief Resulting type after component-to-view conversion. */
-    using view = type;
 };
 
 
@@ -270,23 +264,6 @@ struct pool {
  */
 template<typename Entity, typename Type>
 using pool_t = typename pool<Entity, Type>::type;
-
-
-/**
- * @brief Alias declaration to use for component-to-view conversions.
- * @tparam Entity A valid entity type (see entt_traits for more details).
- * @tparam Type Type of objects assigned to the entities.
- */
-template<typename Entity, typename Type>
-using view_t = typename pool<Entity, Type>::view;
-
-
-/**
- * @brief Helper variable template.
- * @tparam Type The type of which to extract the setup member function.
- */
-template<typename Type>
-inline constexpr auto view_setup_v = pool<Entity, Type>::setup;
 
 
 }
