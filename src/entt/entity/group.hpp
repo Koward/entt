@@ -425,7 +425,7 @@ public:
         if constexpr(sizeof...(Component) == 1) {
             return (std::get<pool_type<Component> *>(pools)->get(entt), ...);
         } else {
-            return std::tuple<decltype(get<Component>({}))...>{get<Component>(entt)...};
+            return std::forward_as_tuple(get<Component>(entt)...);
         }
     }
 
@@ -469,7 +469,7 @@ public:
      *
      * @return An iterable object to use to _visit_ the group.
      */
-    [[nodiscard]] auto each() const ENTT_NOEXCEPT {
+    [[nodiscard]] auto all() const ENTT_NOEXCEPT {
         return group_range{*handler, pools};
     }
 
@@ -993,7 +993,7 @@ public:
         if constexpr(sizeof...(Component) == 1) {
             return (std::get<pool_type<Component> *>(pools)->get(entt), ...);
         } else {
-            return std::tuple<decltype(get<Component>({}))...>{get<Component>(entt)...};
+            return std::forward_as_tuple(get<Component>(entt)...);
         }
     }
 
@@ -1039,7 +1039,7 @@ public:
      *
      * @return An iterable object to use to _visit_ the group.
      */
-    [[nodiscard]] auto each() const ENTT_NOEXCEPT {
+    [[nodiscard]] auto all() const ENTT_NOEXCEPT {
         return group_range{pools, *length};
     }
 
