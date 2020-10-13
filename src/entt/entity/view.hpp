@@ -181,13 +181,13 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             }
 
             [[nodiscard]] reference operator*() const ENTT_NOEXCEPT {
-                return std::tuple_cat(std::make_tuple(std::get<0>(*it)), [data = *it](const auto &curr) {
+                return std::tuple_cat([data = *it](const auto &curr) {
                     using raw_type = typename std::remove_reference_t<decltype(curr)>::raw_type;
 
-                    if constexpr(is_eto_eligible_v<raw_type>) {
+                    if constexpr(std::is_same_v<raw_type, leading_type>) {
+                        return data;
+                    } else if constexpr(is_eto_eligible_v<raw_type>) {
                         return std::make_tuple();
-                    } else if constexpr(std::is_same_v<raw_type, leading_type>) {
-                        return std::forward_as_tuple(std::get<1>(data));
                     } else {
                         return std::forward_as_tuple(curr.get(std::get<0>(data)));
                     }
