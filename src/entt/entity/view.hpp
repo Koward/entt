@@ -455,7 +455,7 @@ public:
     template<typename Func>
     void each(Func func) const {
         const auto size = std::min({ view_type<Component>::size()... });
-        ((view_type<Component>::size() == size ? (traverse<Component>(std::move(func), return_type{}), true) : false) || ...);
+        static_cast<void>(((view_type<Component>::size() == size ? (traverse<Component>(std::move(func), return_type{}), true) : false) || ...));
     }
 
     /**
