@@ -79,18 +79,13 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
 
         using iterator = typename view_type<leading_type>::iterator;
 
-        [[nodiscard]] bool valid() const {
-            return ((std::is_same_v<Component, leading_type> || parent->view_type<Component>::contains(*it)) && ...)
-                && !(parent->view_type<std::add_const_t<Exclude>>::contains(*it) || ...);
-        }
-
         view_iterator(iterator curr, const basic_view &ref) ENTT_NOEXCEPT
             : first{ref.view_type<leading_type>::begin()},
               last{ref.view_type<leading_type>::end()},
               it{curr},
               parent{&ref}
         {
-            if(it != last && !valid()) {
+            if(it != last && !parent->valid(*it)) {
                 ++(*this);
             }
         }
@@ -105,7 +100,7 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
         view_iterator() ENTT_NOEXCEPT = default;
 
         view_iterator & operator++() {
-            while(++it != last && !valid());
+            while(++it != last && !parent->valid(*it));
             return *this;
         }
 
@@ -115,7 +110,7 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
         }
 
         view_iterator & operator--() ENTT_NOEXCEPT {
-            while(--it != first && !valid());
+            while(--it != first && !parent->valid(*it));
             return *this;
         }
 
@@ -140,10 +135,6 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             return *operator->();
         }
 
-        [[nodiscard]] const basic_view & view() const ENTT_NOEXCEPT {
-            return *parent;
-        }
-
     private:
         iterator first;
         iterator last;
@@ -157,9 +148,17 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
         class range_iterator {
             friend class view_range;
 
-            range_iterator(view_iterator from) ENTT_NOEXCEPT
-                : it{from}
-            {}
+            using iterator = typename std::decay_t<decltype(std::declval<view_type<leading_type>>().all())>::iterator;
+
+            range_iterator(iterator curr, const basic_view &ref) ENTT_NOEXCEPT
+                : last{ref.view_type<leading_type>::all().end()},
+                  it{curr},
+                  parent{&ref}
+            {
+                if(it != last && !parent->valid(std::get<0>(*it))) {
+                    ++(*this);
+                }
+            }
 
         public:
             using difference_type = std::ptrdiff_t;
@@ -172,7 +171,8 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             using iterator_category = std::input_iterator_tag;
 
             range_iterator & operator++() ENTT_NOEXCEPT {
-                return ++it, *this;
+                while(++it != last && !parent->valid(std::get<0>(*it)));
+                return *this;
             }
 
             range_iterator operator++(int) ENTT_NOEXCEPT {
@@ -181,13 +181,17 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             }
 
             [[nodiscard]] reference operator*() const ENTT_NOEXCEPT {
-                return std::tuple_cat(std::make_tuple(*it), [entt = *it](const auto &curr) {
-                    if constexpr(is_eto_eligible_v<typename std::remove_reference_t<decltype(curr)>::raw_type>) {
+                return std::tuple_cat(std::make_tuple(std::get<0>(*it)), [data = *it](const auto &curr) {
+                    using raw_type = typename std::remove_reference_t<decltype(curr)>::raw_type;
+
+                    if constexpr(is_eto_eligible_v<raw_type>) {
                         return std::make_tuple();
+                    } else if constexpr(std::is_same_v<raw_type, leading_type>) {
+                        return std::forward_as_tuple(std::get<1>(data));
                     } else {
-                        return std::forward_as_tuple(curr.get(entt));
+                        return std::forward_as_tuple(curr.get(std::get<0>(data)));
                     }
-                }(static_cast<const view_type<Component> &>(it.view()))...);
+                }(static_cast<const view_type<Component> &>(*parent))...);
             }
 
             [[nodiscard]] bool operator==(const range_iterator &other) const ENTT_NOEXCEPT {
@@ -199,7 +203,9 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             }
 
         private:
-            view_iterator it{};
+            iterator last;
+            iterator it;
+            const basic_view *parent;
         };
 
         view_range(const basic_view &ref)
@@ -210,16 +216,21 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
         using iterator = range_iterator;
 
         [[nodiscard]] iterator begin() const ENTT_NOEXCEPT {
-            return view_iterator{parent->view_type<leading_type>::begin(), *parent};
+            return { parent->view_type<leading_type>::all().begin(), *parent };
         }
 
         [[nodiscard]] iterator end() const ENTT_NOEXCEPT {
-            return view_iterator{parent->view_type<leading_type>::end(), *parent};
+            return { parent->view_type<leading_type>::all().end(), *parent };
         }
 
     private:
         const basic_view *parent;
     };
+
+    [[nodiscard]] bool valid(const Entity entt) const {
+        return ((std::is_same_v<Component, leading_type> || view_type<Component>::contains(entt)) && ...)
+            && !(view_type<std::add_const_t<Exclude>>::contains(entt) || ...);
+    }
 
     template<typename Other, typename Comp>
     [[nodiscard]] decltype(auto) get([[maybe_unused]] Comp &comp, [[maybe_unused]] const view_type<Other> &other, [[maybe_unused]] const Entity entt) const {
