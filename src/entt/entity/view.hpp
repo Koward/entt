@@ -150,6 +150,17 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
 
             using iterator = typename std::decay_t<decltype(std::declval<view_type<leading_type>>().all())>::iterator;
 
+            template<typename Comp>
+            [[nodiscard]] auto get(const view_type<Comp> &curr) const {
+                if constexpr(std::is_same_v<Comp, leading_type>) {
+                    return *it;
+                } else if constexpr(is_eto_eligible_v<Comp>) {
+                    return std::make_tuple();
+                } else {
+                    return std::forward_as_tuple(curr.get(std::get<0>(*it)));
+                }
+            }
+
             range_iterator(iterator curr, const basic_view &ref) ENTT_NOEXCEPT
                 : last{ref.view_type<leading_type>::all().end()},
                   it{curr},
@@ -181,17 +192,7 @@ class basic_view<Entity, exclude_t<Exclude...>, Component...>
             }
 
             [[nodiscard]] reference operator*() const ENTT_NOEXCEPT {
-                return std::tuple_cat([data = *it](const auto &curr) {
-                    using raw_type = typename std::remove_reference_t<decltype(curr)>::raw_type;
-
-                    if constexpr(std::is_same_v<raw_type, leading_type>) {
-                        return data;
-                    } else if constexpr(is_eto_eligible_v<raw_type>) {
-                        return std::make_tuple();
-                    } else {
-                        return std::forward_as_tuple(curr.get(std::get<0>(data)));
-                    }
-                }(static_cast<const view_type<Component> &>(*parent))...);
+                return std::tuple_cat(get<Component>(*parent)...);
             }
 
             [[nodiscard]] bool operator==(const range_iterator &other) const ENTT_NOEXCEPT {
